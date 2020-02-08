@@ -14,8 +14,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Volo\Abp\Emailing\Templates\*.html" />
-    <None Remove="Volo\Abp\Emailing\Templates\*.html" />
+    <EmbeddedResource Include="Volo\Abp\Emailing\Templates\DefaultEmailTemplates\*\*.tpl" />
+    <None Remove="Volo\Abp\Emailing\Templates\DefaultEmailTemplates\*\*.tpl" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Volo\Abp\Emailing\Localization\*.json" />
+    <EmbeddedResource Include="Volo\Abp\Emailing\Localization\*.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Scriban" Version="2.1.1" />
   </ItemGroup>
 
   <ItemGroup>

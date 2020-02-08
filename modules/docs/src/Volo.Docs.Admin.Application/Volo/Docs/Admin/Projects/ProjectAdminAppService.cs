@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Guids;
+using Volo.Docs.Localization;
 using Volo.Docs.Projects;
 
 namespace Volo.Docs.Admin.Projects
@@ -18,6 +19,9 @@ namespace Volo.Docs.Admin.Projects
         public ProjectAdminAppService(
             IProjectRepository projectRepository, IGuidGenerator guidGenerator)
         {
+            ObjectMapperContext = typeof(DocsAdminApplicationModule);
+            LocalizationResource = typeof(DocsResource);
+
             _projectRepository = projectRepository;
             _guidGenerator = guidGenerator;
         }
@@ -26,7 +30,7 @@ namespace Volo.Docs.Admin.Projects
         {
             var projects = await _projectRepository.GetListAsync(input.Sorting, input.MaxResultCount, input.SkipCount);
 
-            var totalCount = await _projectRepository.GetTotalProjectCount();
+            var totalCount = await _projectRepository.GetCountAsync();
 
             var dtos = ObjectMapper.Map<List<Project>, List<ProjectDto>>(projects);
 
@@ -49,7 +53,8 @@ namespace Volo.Docs.Admin.Projects
                 input.DocumentStoreType,
                 input.Format,
                 input.DefaultDocumentName,
-                input.NavigationDocumentName
+                input.NavigationDocumentName,
+                input.ParametersDocumentName
             )
             {
                 MinimumVersion = input.MinimumVersion,

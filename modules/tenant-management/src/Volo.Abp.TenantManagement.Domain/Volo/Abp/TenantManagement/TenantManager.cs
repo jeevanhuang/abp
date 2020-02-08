@@ -12,13 +12,14 @@ namespace Volo.Abp.TenantManagement
         public TenantManager(ITenantRepository tenantRepository)
         {
             _tenantRepository = tenantRepository;
+
         }
 
         public async Task<Tenant> CreateAsync(string name)
         {
             Check.NotNull(name, nameof(name));
 
-            await ValidateNameAsync(name);
+            await ValidateNameAsync(name).ConfigureAwait(false);
             return new Tenant(GuidGenerator.Create(), name);
         }
 
@@ -27,13 +28,13 @@ namespace Volo.Abp.TenantManagement
             Check.NotNull(tenant, nameof(tenant));
             Check.NotNull(name, nameof(name));
 
-            await ValidateNameAsync(name, tenant.Id);
+            await ValidateNameAsync(name, tenant.Id).ConfigureAwait(false);
             tenant.SetName(name);
         }
 
         protected virtual async Task ValidateNameAsync(string name, Guid? expectedId = null)
         {
-            var tenant = await _tenantRepository.FindByNameAsync(name);
+            var tenant = await _tenantRepository.FindByNameAsync(name).ConfigureAwait(false);
             if (tenant != null && tenant.Id != expectedId)
             {
                 throw new UserFriendlyException("Duplicate tenancy name: " + name); //TODO: A domain exception would be better..?

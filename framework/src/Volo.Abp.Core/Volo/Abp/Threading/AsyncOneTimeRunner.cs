@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Nito.AsyncEx;
 
@@ -11,7 +12,7 @@ namespace Volo.Abp.Threading
     public class AsyncOneTimeRunner
     {
         private volatile bool _runBefore;
-        private readonly AsyncLock _asyncLock = new AsyncLock();
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
         public async Task RunAsync(Func<Task> action)
         {
@@ -20,14 +21,14 @@ namespace Volo.Abp.Threading
                 return;
             }
 
-            using (await _asyncLock.LockAsync())
+            using (await _semaphore.LockAsync().ConfigureAwait(false))
             {
                 if (_runBefore)
                 {
                     return;
                 }
 
-                await action();
+                await action().ConfigureAwait(false);
 
                 _runBefore = true;
             }

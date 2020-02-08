@@ -23,14 +23,19 @@ namespace Volo.Abp.BackgroundJobs.EntityFrameworkCore
 
         public async Task<List<BackgroundJobRecord>> GetWaitingListAsync(int maxResultCount)
         {
+            return await GetWaitingListQuery(maxResultCount)
+                .ToListAsync().ConfigureAwait(false);
+        }
+
+        private IQueryable<BackgroundJobRecord> GetWaitingListQuery(int maxResultCount)
+        {
             var now = Clock.Now;
-            return await DbSet
+            return DbSet
                 .Where(t => !t.IsAbandoned && t.NextTryTime <= now)
                 .OrderByDescending(t => t.Priority)
                 .ThenBy(t => t.TryCount)
                 .ThenBy(t => t.NextTryTime)
-                .Take(maxResultCount)
-                .ToListAsync();
+                .Take(maxResultCount);
         }
     }
 }

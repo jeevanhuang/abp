@@ -2,10 +2,8 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
-using Volo.Abp.Application.Services;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
-using Volo.Abp.Users;
 using Volo.Blogging.Comments;
 using Volo.Blogging.Tagging;
 using Volo.Blogging.Tagging.Dtos;
@@ -13,12 +11,7 @@ using Volo.Blogging.Users;
 
 namespace Volo.Blogging.Posts
 {
-    /* TODO: Custom policy with configuration.
-     * We should create a custom policy to see the blog as read only if the blog is
-     * configured as 'public' or the current user has the related permission.
-     */
-    //[Authorize(BloggingPermissions.Posts.Default)]
-    public class PostAppService : ApplicationService, IPostAppService
+    public class PostAppService : BloggingAppServiceBase, IPostAppService
     {
         protected IBlogUserLookupService UserLookupService { get; }
 
@@ -41,6 +34,11 @@ namespace Volo.Blogging.Posts
             var userDictionary = new Dictionary<Guid, BlogUserDto>();
             var postDtos = new List<PostWithDetailsDto>(ObjectMapper.Map<List<Post>, List<PostWithDetailsDto>>(posts));
 
+            foreach (var postDto in postDtos)
+            {
+                postDto.Tags = await GetTagsOfPost(postDto.Id);
+            }
+
             if (tag != null)
             {
                 postDtos = await FilterPostsByTag(postDtos, tag);
@@ -49,11 +47,6 @@ namespace Volo.Blogging.Posts
             foreach (var postDto in postDtos)
             {
                 postDto.CommentCount = await _commentRepository.GetCommentCountOfPostAsync(postDto.Id);
-            }
-
-            foreach (var postDto in postDtos)
-            {
-                postDto.Tags = await GetTagsOfPost(postDto.Id);
             }
 
             foreach (var postDto in postDtos)
@@ -77,24 +70,6 @@ namespace Volo.Blogging.Posts
             }
 
             return new ListResultDto<PostWithDetailsDto>(postDtos);
-        }
-
-        private async Task<List<PostWithDetailsDto>> FilterPostsByTag(List<PostWithDetailsDto> allPostDtos, Tag tag)
-        {
-            var filteredPostDtos = new List<PostWithDetailsDto>();
-            var posts = await _postRepository.GetListAsync();
-
-            foreach (var postDto in allPostDtos)
-            {
-                if (!postDto.Tags.Any(p=> p.Id == tag.Id))
-                {
-                    continue;
-                }
-
-                filteredPostDtos.Add(postDto);
-            }
-
-            return filteredPostDtos;
         }
 
         public async Task<PostWithDetailsDto> GetForReadingAsync(GetPostInput input)
@@ -135,6 +110,7 @@ namespace Volo.Blogging.Posts
             return postDto;
         }
 
+        [Authorize(BloggingPermissions.Posts.Delete)]
         public async Task DeleteAsync(Guid id)
         {
             var post = await _postRepository.GetAsync(id);
@@ -142,7 +118,7 @@ namespace Volo.Blogging.Posts
             await AuthorizationService.CheckAsync(post, CommonOperations.Delete);
 
             var tags = await GetTagsOfPost(id);
-            _tagRepository.DecreaseUsageCountOfTags(tags.Select(t => t.Id).ToList());
+            await _tagRepository.DecreaseUsageCountOfTagsAsync(tags.Select(t => t.Id).ToList());
             await _commentRepository.DeleteOfPost(id);
 
             await _postRepository.DeleteAsync(id);
@@ -178,7 +154,6 @@ namespace Volo.Blogging.Posts
             var post = new Post(
                 id: GuidGenerator.Create(),
                 blogId: input.BlogId,
-                creatorId: CurrentUser.GetId(),
                 title: input.Title,
                 coverImage: input.CoverImage,
                 url: input.Url
@@ -205,14 +180,14 @@ namespace Volo.Blogging.Posts
             return url;
         }
 
-        private async Task SaveTags(List<String> newTags, Post post)
+        private async Task SaveTags(ICollection<string> newTags, Post post)
         {
             await RemoveOldTags(newTags, post);
 
             await AddNewTags(newTags, post);
         }
 
-        private async Task RemoveOldTags(List<string> newTags, Post post)
+        private async Task RemoveOldTags(ICollection<string> newTags, Post post)
         {
             foreach (var oldTag in post.Tags)
             {
@@ -234,7 +209,7 @@ namespace Volo.Blogging.Posts
             }
         }
 
-        private async Task AddNewTags(List<string> newTags, Post post)
+        private async Task AddNewTags(IEnumerable<string> newTags, Post post)
         {
             var tags = await _tagRepository.GetListAsync(post.BlogId);
 
@@ -244,14 +219,15 @@ namespace Volo.Blogging.Posts
 
                 if (tag == null)
                 {
-                    tag = await _tagRepository.InsertAsync(new Tag(post.BlogId, newTag, 1));
+                    tag = await _tagRepository.InsertAsync(new Tag(GuidGenerator.Create(), post.BlogId, newTag, 1));
                 }
                 else
                 {
                     tag.IncreaseUsageCount();
                     tag = await _tagRepository.UpdateAsync(tag);
-                    post.AddTag(tag.Id);
                 }
+
+                post.AddTag(tag.Id);
             }
         }
 
@@ -271,6 +247,13 @@ namespace Volo.Blogging.Posts
                 return new List<string>();
             }
             return new List<string>(tags.Split(",").Select(t => t.Trim()));
+        }
+
+        private Task<List<PostWithDetailsDto>> FilterPostsByTag(IEnumerable<PostWithDetailsDto> allPostDtos, Tag tag)
+        {
+            var filteredPostDtos = allPostDtos.Where(p => p.Tags?.Any(t => t.Id == tag.Id) ?? false).ToList();
+           
+            return Task.FromResult(filteredPostDtos);
         }
     }
 }

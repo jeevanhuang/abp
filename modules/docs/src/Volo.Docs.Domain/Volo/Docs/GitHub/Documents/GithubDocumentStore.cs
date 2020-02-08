@@ -1,17 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Octokit;
-using Octokit.Internal;
+using Newtonsoft.Json;
 using Volo.Abp.Domain.Services;
 using Volo.Docs.Documents;
 using Volo.Docs.GitHub.Projects;
 using Volo.Docs.Projects;
 using Newtonsoft.Json.Linq;
-using ProductHeaderValue = Octokit.ProductHeaderValue;
+using Octokit;
 using Project = Volo.Docs.Projects.Project;
 
 namespace Volo.Docs.GitHub.Documents
@@ -22,16 +20,24 @@ namespace Volo.Docs.GitHub.Documents
     {
         public const string Type = "GitHub";
 
-        public virtual async Task<Document> GetDocument(Project project, string documentName, string version)
+        private readonly IGithubRepositoryManager _githubRepositoryManager;
+
+        public GithubDocumentStore(IGithubRepositoryManager githubRepositoryManager)
+        {
+            _githubRepositoryManager = githubRepositoryManager;
+        }
+        
+        public virtual async Task<Document> GetDocumentAsync(Project project, string documentName, string languageCode, string version)
         {
             var token = project.GetGitHubAccessTokenOrNull();
             var rootUrl = project.GetGitHubUrl(version);
-            var rawRootUrl = CalculateRawRootUrl(rootUrl);
+            var userAgent = project.GetGithubUserAgentOrNull();
+            var rawRootUrl = CalculateRawRootUrlWithLanguageCode(rootUrl, languageCode);
             var rawDocumentUrl = rawRootUrl + documentName;
             var commitHistoryUrl = project.GetGitHubUrlForCommitHistory() + documentName;
-            var userAgent = project.GetGithubUserAgentOrNull();
             var isNavigationDocument = documentName == project.NavigationDocumentName;
-            var editLink = rootUrl.ReplaceFirst("/tree/", "/blob/") + documentName;
+            var isParameterDocument = documentName == project.ParametersDocumentName;
+            var editLink = rootUrl.ReplaceFirst("/tree/", "/blob/") + languageCode + "/" + documentName;
             var localDirectory = "";
             var fileName = documentName;
 
@@ -50,13 +56,14 @@ namespace Volo.Docs.GitHub.Documents
                 Format = project.Format,
                 LocalDirectory = localDirectory,
                 FileName = fileName,
-                Contributors = !isNavigationDocument ? await GetContributors(commitHistoryUrl, token, userAgent): new List<DocumentContributor>(),
+                Contributors = new List<DocumentContributor>(),
+                //Contributors = !isNavigationDocument && !isParameterDocument ? await GetContributors(commitHistoryUrl, token, userAgent): new List<DocumentContributor>(),
                 Version = version,
                 Content = await DownloadWebContentAsStringAsync(rawDocumentUrl, token, userAgent)
             };
         }
 
-        public async Task<List<VersionInfo>> GetVersions(Project project)
+        public async Task<List<VersionInfo>> GetVersionsAsync(Project project)
         {
             List<VersionInfo> versions;
             try
@@ -84,9 +91,9 @@ namespace Volo.Docs.GitHub.Documents
             return versions;
         }
 
-        public async Task<DocumentResource> GetResource(Project project, string resourceName, string version)
+        public async Task<DocumentResource> GetResource(Project project, string resourceName, string languageCode, string version)
         {
-            var rawRootUrl = CalculateRawRootUrl(project.GetGitHubUrl(version));
+            var rawRootUrl = CalculateRawRootUrlWithLanguageCode(project.GetGitHubUrl(version), languageCode);
             var content = await DownloadWebContentAsByteArrayAsync(
                 rawRootUrl + resourceName,
                 project.GetGitHubAccessTokenOrNull(),
@@ -96,25 +103,25 @@ namespace Volo.Docs.GitHub.Documents
             return new DocumentResource(content);
         }
 
+        public async Task<LanguageConfig> GetLanguageListAsync(Project project, string version)
+        {
+            var token = project.GetGitHubAccessTokenOrNull();
+            var rootUrl = project.GetGitHubUrl(version);
+            var userAgent = project.GetGithubUserAgentOrNull();
+
+            var url = CalculateRawRootUrl(rootUrl) + "docs-langs.json";
+
+            var configAsJson = await DownloadWebContentAsStringAsync(url, token, userAgent);
+
+            return JsonConvert.DeserializeObject<LanguageConfig>(configAsJson);
+        }
+
         private async Task<IReadOnlyList<Release>> GetReleasesAsync(Project project)
         {
             var url = project.GetGitHubUrl();
             var ownerName = GetOwnerNameFromUrl(url);
             var repositoryName = GetRepositoryNameFromUrl(url);
-            var gitHubClient = CreateGitHubClient(project.GetGitHubAccessTokenOrNull());
-
-            return await gitHubClient
-                .Repository
-                .Release
-                .GetAll(ownerName, repositoryName);
-        }
-
-        private static GitHubClient CreateGitHubClient(string token = null)
-        {
-            //TODO: Why hard-coded "abpframework"? Should be configurable?
-            return token.IsNullOrWhiteSpace()
-                ? new GitHubClient(new ProductHeaderValue("abpframework"))
-                : new GitHubClient(new ProductHeaderValue("abpframework"), new InMemoryCredentialStore(new Credentials(token)));
+            return await _githubRepositoryManager.GetReleasesAsync(ownerName, repositoryName, project.GetGitHubAccessTokenOrNull());
         }
 
         protected virtual string GetOwnerNameFromUrl(string url)
@@ -148,16 +155,9 @@ namespace Volo.Docs.GitHub.Documents
         {
             try
             {
-                using (var webClient = new WebClient())
-                {
-                    if (!token.IsNullOrWhiteSpace())
-                    {
-                        webClient.Headers.Add("Authorization", "token " + token);
-                    }
-                    webClient.Headers.Add("User-Agent", userAgent ?? "");
+                Logger.LogInformation("Downloading content from Github (DownloadWebContentAsStringAsync): " + rawUrl);
 
-                    return await webClient.DownloadStringTaskAsync(new Uri(rawUrl));
-                }
+                return await _githubRepositoryManager.GetFileRawStringContentAsync(rawUrl, token, userAgent);
             }
             catch (Exception ex)
             {
@@ -171,16 +171,9 @@ namespace Volo.Docs.GitHub.Documents
         {
             try
             {
-                using (var webClient = new WebClient())
-                {
-                    if (!token.IsNullOrWhiteSpace())
-                    {
-                        webClient.Headers.Add("Authorization", "token " + token);
-                    }
-                    webClient.Headers.Add("User-Agent", userAgent ?? "");
+                Logger.LogInformation("Downloading content from Github (DownloadWebContentAsByteArrayAsync): " + rawUrl);
 
-                    return await webClient.DownloadDataTaskAsync(new Uri(rawUrl));
-                }
+                return await _githubRepositoryManager.GetFileRawByteArrayContentAsync(rawUrl, token, userAgent);
             }
             catch (Exception ex)
             {
@@ -219,16 +212,26 @@ namespace Volo.Docs.GitHub.Documents
             {
                 Logger.LogWarning(ex.Message);
             }
-
-
+            
             return contributors;
+        }
+
+        private static string CalculateRawRootUrlWithLanguageCode(string rootUrl, string languageCode)
+        {
+            return (rootUrl
+                .Replace("github.com", "raw.githubusercontent.com")
+                .ReplaceFirst("/tree/", "/")
+                .EnsureEndsWith('/')
+                + languageCode
+                ).EnsureEndsWith('/');
         }
 
         private static string CalculateRawRootUrl(string rootUrl)
         {
             return rootUrl
                 .Replace("github.com", "raw.githubusercontent.com")
-                .ReplaceFirst("/tree/", "/");
+                .ReplaceFirst("/tree/", "/")
+                .EnsureEndsWith('/');
         }
     }
 }

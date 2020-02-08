@@ -16,12 +16,7 @@ namespace ProductManagement
     {
         public override void ConfigureServices(ServiceConfigurationContext context)
         {
-            Configure<PermissionOptions>(options =>
-            {
-                options.DefinitionProviders.Add<ProductManagementPermissionDefinitionProvider>();
-            });
-
-            Configure<VirtualFileSystemOptions>(options =>
+            Configure<AbpVirtualFileSystemOptions>(options =>
             {
                 options.FileSets.AddEmbedded<ProductManagementApplicationContractsModule>();
             });
@@ -31,11 +26,6 @@ namespace ProductManagement
                 options.Resources
                     .Get<ProductManagementResource>()
                     .AddVirtualJson("/ProductManagement/Localization/ApplicationContracts");
-            });
-
-            Configure<SettingOptions>(options =>
-            {
-                options.DefinitionProviders.Add<ProductManagementSettingDefinitionProvider>();
             });
         }
     }

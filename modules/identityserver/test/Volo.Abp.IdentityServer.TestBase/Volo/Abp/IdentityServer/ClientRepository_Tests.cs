@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -15,7 +13,7 @@ namespace Volo.Abp.IdentityServer
     {
         protected IClientRepository clientRepository { get; }
 
-        public ClientRepository_Tests()
+        protected ClientRepository_Tests()
         {
             clientRepository = ServiceProvider.GetRequiredService<IClientRepository>();
         }
@@ -23,7 +21,14 @@ namespace Volo.Abp.IdentityServer
         [Fact]
         public async Task FindByCliendIdAsync()
         {
-            (await clientRepository.FindByCliendIdAsync("ClientId2")).ShouldNotBeNull();
+            (await clientRepository.FindByCliendIdAsync("ClientId2").ConfigureAwait(false)).ShouldNotBeNull();
+        }
+
+        [Fact]
+        public async Task GetAllDistinctAllowedCorsOriginsAsync()
+        {
+            var origins = await clientRepository.GetAllDistinctAllowedCorsOriginsAsync().ConfigureAwait(false);
+            origins.Any().ShouldBeTrue();
         }
     }
 }

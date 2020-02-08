@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Volo.Abp.Authorization.Permissions;
 using Volo.Abp.Guids;
 using Volo.Abp.MultiTenancy;
 
@@ -24,8 +23,7 @@ namespace Volo.Abp.PermissionManagement
             GuidGenerator = guidGenerator;
             CurrentTenant = currentTenant;
         }
-
-
+        
         public virtual async Task<PermissionValueProviderGrantInfo> CheckAsync(string name, string providerName, string providerKey)
         {
             if (providerName != Name)
@@ -48,7 +46,7 @@ namespace Volo.Abp.PermissionManagement
 
         protected virtual async Task GrantAsync(string name, string providerKey)
         {
-            var permissionGrant = await PermissionGrantRepository.FindAsync(name, Name, providerKey);
+            var permissionGrant = await PermissionGrantRepository.FindAsync(name, Name, providerKey).ConfigureAwait(false);
             if (permissionGrant != null)
             {
                 return;
@@ -62,18 +60,18 @@ namespace Volo.Abp.PermissionManagement
                     providerKey,
                     CurrentTenant.Id
                 )
-            );
+            ).ConfigureAwait(false);
         }
 
         protected virtual async Task RevokeAsync(string name, string providerKey)
         {
-            var permissionGrant = await PermissionGrantRepository.FindAsync(name, Name, providerKey);
+            var permissionGrant = await PermissionGrantRepository.FindAsync(name, Name, providerKey).ConfigureAwait(false);
             if (permissionGrant == null)
             {
                 return;
             }
 
-            await PermissionGrantRepository.DeleteAsync(permissionGrant);
+            await PermissionGrantRepository.DeleteAsync(permissionGrant).ConfigureAwait(false);
         }
     }
 }

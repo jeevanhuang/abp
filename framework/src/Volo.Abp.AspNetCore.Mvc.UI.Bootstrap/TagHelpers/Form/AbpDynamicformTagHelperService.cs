@@ -37,11 +37,11 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Form
 
             NormalizeTagMode(context, output);
 
-            var childContent = (await output.GetChildContentAsync()).GetContent();
+            var childContent = (await output.GetChildContentAsync().ConfigureAwait(false)).GetContent();
 
-            await ConvertToMvcForm(context, output);
+            await ConvertToMvcForm(context, output).ConfigureAwait(false);
 
-            ProcessFields(context, output);
+            await ProcessFieldsAsync(context, output).ConfigureAwait(false);
 
             SetContent(context, output, list, childContent);
 
@@ -67,9 +67,9 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Form
                 ViewContext = TagHelper.ViewContext
             };
 
-            var formTagOutput = formTagHelper.ProcessAndGetOutput(output.Attributes, context, "form", TagMode.StartTagAndEndTag);
+            var formTagOutput = await formTagHelper.ProcessAndGetOutputAsync(output.Attributes, context, "form", TagMode.StartTagAndEndTag).ConfigureAwait(false);
 
-            await formTagOutput.GetChildContentAsync();
+            await formTagOutput.GetChildContentAsync().ConfigureAwait(false);
 
             output.PostContent.SetHtmlContent(output.PostContent.GetContent() + formTagOutput.PostContent.GetContent());
             output.PreContent.SetHtmlContent(output.PreContent.GetContent() + formTagOutput.PreContent.GetContent());
@@ -114,7 +114,7 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Form
                 return;
             }
 
-            var buttonHtml = ProcessSubmitButtonAndGetContent(context, output);
+            var buttonHtml = ProcessSubmitButtonAndGetContentAsync(context, output);
 
             output.PostContent.SetHtmlContent(output.PostContent.GetContent() + buttonHtml);
         }
@@ -126,7 +126,7 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Form
             return items;
         }
 
-        protected virtual void ProcessFields(TagHelperContext context, TagHelperOutput output)
+        protected virtual async Task ProcessFieldsAsync(TagHelperContext context, TagHelperOutput output)
         {
             var models = GetModels(context, output);
 
@@ -134,20 +134,20 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Form
             {
                 if (IsSelectGroup(context, model))
                 {
-                    ProcessSelectGroup(context, output, model);
+                    await ProcessSelectGroupAsync(context, output, model).ConfigureAwait(false);
                 }
                 else
                 {
-                    ProcessInputGroup(context, output, model);
+                    await ProcessInputGroupAsync(context, output, model).ConfigureAwait(false);
                 }
             }
         }
 
-        protected virtual void ProcessSelectGroup(TagHelperContext context, TagHelperOutput output, ModelExpression model)
+        protected virtual async Task ProcessSelectGroupAsync(TagHelperContext context, TagHelperOutput output, ModelExpression model)
         {
             var abpSelectTagHelper = GetSelectGroupTagHelper(context, output, model);
 
-            abpSelectTagHelper.Render(new TagHelperAttributeList(), context, _htmlEncoder, "div", TagMode.StartTagAndEndTag);
+            await abpSelectTagHelper.RenderAsync(new TagHelperAttributeList(), context, _htmlEncoder, "div", TagMode.StartTagAndEndTag).ConfigureAwait(false);
         }
 
         protected virtual AbpTagHelper GetSelectGroupTagHelper(TagHelperContext context, TagHelperOutput output, ModelExpression model)
@@ -178,24 +178,24 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Form
             return abpRadioInputTagHelper;
         }
 
-        protected virtual string ProcessSubmitButtonAndGetContent(TagHelperContext context, TagHelperOutput output)
+        protected virtual async Task<string> ProcessSubmitButtonAndGetContentAsync(TagHelperContext context, TagHelperOutput output)
         {
             var abpButtonTagHelper = _serviceProvider.GetRequiredService<AbpButtonTagHelper>();
             var attributes = new TagHelperAttributeList { new TagHelperAttribute("type", "submit") };
             abpButtonTagHelper.Text = "Submit";
             abpButtonTagHelper.ButtonType = AbpButtonType.Primary;
 
-            return abpButtonTagHelper.Render(attributes, context, _htmlEncoder, "button", TagMode.StartTagAndEndTag);
+            return await abpButtonTagHelper.RenderAsync(attributes, context, _htmlEncoder, "button", TagMode.StartTagAndEndTag).ConfigureAwait(false);
         }
 
-        protected virtual void ProcessInputGroup(TagHelperContext context, TagHelperOutput output, ModelExpression model)
+        protected virtual async Task ProcessInputGroupAsync(TagHelperContext context, TagHelperOutput output, ModelExpression model)
         {
             var abpInputTagHelper = _serviceProvider.GetRequiredService<AbpInputTagHelper>();
             abpInputTagHelper.AspFor = model;
             abpInputTagHelper.ViewContext = TagHelper.ViewContext;
             abpInputTagHelper.DisplayRequiredSymbol = TagHelper.RequiredSymbols ?? true;
 
-            abpInputTagHelper.Render(new TagHelperAttributeList(), context, _htmlEncoder, "div", TagMode.StartTagAndEndTag);
+            await abpInputTagHelper.RenderAsync(new TagHelperAttributeList(), context, _htmlEncoder, "div", TagMode.StartTagAndEndTag).ConfigureAwait(false);
         }
 
         protected virtual List<ModelExpression> GetModels(TagHelperContext context, TagHelperOutput output)
@@ -205,6 +205,11 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Form
 
         protected virtual List<ModelExpression> ExploreModelsRecursively(List<ModelExpression> list, ModelExplorer model)
         {
+            if (model.GetAttribute<DynamicFormIgnore>() != null)
+            {
+                return list;
+            }
+
             if (IsCsharpClassOrPrimitive(model.ModelType) || IsListOfCsharpClassOrPrimitive(model.ModelType))
             {
                 list.Add(ModelExplorerToModelExpressionConverter(model));

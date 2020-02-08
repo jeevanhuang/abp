@@ -287,9 +287,18 @@
 
                 //Sorting
                 if (requestData.order && requestData.order.length > 0) {
-                    var orderingField = requestData.order[0];
-                    if (requestData.columns[orderingField.column].data) {
-                        input.sorting = requestData.columns[orderingField.column].data + " " + orderingField.dir;
+                    input.sorting = "";
+
+                    for (var i = 0; i < requestData.order.length; i++) {
+                        var orderingField = requestData.order[i];
+
+                        if (requestData.columns[orderingField.column].data) {
+                            input.sorting += requestData.columns[orderingField.column].data + " " + orderingField.dir;
+
+                            if (i < requestData.order.length - 1) {
+                                input.sorting += ",";
+                            }
+                        }
                     }
                 }
 
@@ -337,6 +346,23 @@
                     customizeRowActionColumn(column);
                 }
             }
+
+            configuration.language = {
+                info: localize("PagerInfo"),
+                infoFiltered: localize("PagerInfoFiltered"),
+                infoEmpty: localize("PagerInfoEmpty"),
+                search: localize("PagerSearch"),
+                processing: localize("ProcessingWithThreeDot"),
+                loadingRecords: localize("LoadingWithThreeDot"),
+                lengthMenu: localize("PagerShowMenuEntries"),
+                emptyTable: localize("NoDataAvailableInDatatable"),
+                paginate: {
+                    first: localize("PagerFirst"),
+                    last: localize("PagerLast"),
+                    previous: localize("PagerPrevious"),
+                    next: localize("PagerNext")
+                }
+            };
 
             configuration.dom = '<"dataTable_filters"f>rt<"row dataTable_footer"<"col-auto"l><"col-auto"i><"col"p>>';
 

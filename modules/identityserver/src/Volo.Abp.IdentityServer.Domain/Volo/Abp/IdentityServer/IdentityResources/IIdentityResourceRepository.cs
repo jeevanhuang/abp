@@ -28,6 +28,10 @@ namespace Volo.Abp.IdentityServer.IdentityResources
             CancellationToken cancellationToken = default
         );
 
-        Task<long> GetTotalCountAsync();
+        Task<bool> CheckNameExistAsync(
+            string name,
+            Guid? expectedId = null,
+            CancellationToken cancellationToken = default
+         );
     }
 }

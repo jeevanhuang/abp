@@ -32,45 +32,29 @@ namespace Volo.Abp.Emailing
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = isBodyHtml
-            });
-        }
-
-        public virtual void Send(string to, string subject, string body, bool isBodyHtml = true)
-        {
-            Send(new MailMessage
-            {
-                To = { to },
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = isBodyHtml
-            });
+            }).ConfigureAwait(false);
         }
 
         public virtual async Task SendAsync(string from, string to, string subject, string body, bool isBodyHtml = true)
         {
-            await SendAsync(new MailMessage(from, to, subject, body) { IsBodyHtml = isBodyHtml });
-        }
-
-        public virtual void Send(string from, string to, string subject, string body, bool isBodyHtml = true)
-        {
-            Send(new MailMessage(from, to, subject, body) { IsBodyHtml = isBodyHtml });
+            await SendAsync(new MailMessage(from, to, subject, body) { IsBodyHtml = isBodyHtml }).ConfigureAwait(false);
         }
 
         public virtual async Task SendAsync(MailMessage mail, bool normalize = true)
         {
             if (normalize)
             {
-                NormalizeMail(mail);
+                await NormalizeMailAsync(mail).ConfigureAwait(false);
             }
 
-            await SendEmailAsync(mail);
+            await SendEmailAsync(mail).ConfigureAwait(false);
         }
 
         public virtual async Task QueueAsync(string to, string subject, string body, bool isBodyHtml = true)
         {
             if (!BackgroundJobManager.IsAvailable())
             {
-                await SendAsync(to, subject, body, isBodyHtml);
+                await SendAsync(to, subject, body, isBodyHtml).ConfigureAwait(false);
                 return;
             }
 
@@ -82,17 +66,7 @@ namespace Volo.Abp.Emailing
                     Body = body,
                     IsBodyHtml = isBodyHtml
                 }
-            );
-        }
-
-        public virtual void Send(MailMessage mail, bool normalize = true)
-        {
-            if (normalize)
-            {
-                NormalizeMail(mail);
-            }
-
-            SendEmail(mail);
+            ).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -102,24 +76,18 @@ namespace Volo.Abp.Emailing
         protected abstract Task SendEmailAsync(MailMessage mail);
 
         /// <summary>
-        /// Should implement this method to send email in derived classes.
-        /// </summary>
-        /// <param name="mail">Mail to be sent</param>
-        protected abstract void SendEmail(MailMessage mail);
-
-        /// <summary>
         /// Normalizes given email.
         /// Fills <see cref="MailMessage.From"/> if it's not filled before.
         /// Sets encodings to UTF8 if they are not set before.
         /// </summary>
         /// <param name="mail">Mail to be normalized</param>
-        protected virtual void NormalizeMail(MailMessage mail)
+        protected virtual async Task NormalizeMailAsync(MailMessage mail)
         {
             if (mail.From == null || mail.From.Address.IsNullOrEmpty())
             {
                 mail.From = new MailAddress(
-                    Configuration.DefaultFromAddress,
-                    Configuration.DefaultFromDisplayName,
+                    await Configuration.GetDefaultFromAddressAsync().ConfigureAwait(false),
+                    await Configuration.GetDefaultFromDisplayNameAsync().ConfigureAwait(false),
                     Encoding.UTF8
                     );
             }

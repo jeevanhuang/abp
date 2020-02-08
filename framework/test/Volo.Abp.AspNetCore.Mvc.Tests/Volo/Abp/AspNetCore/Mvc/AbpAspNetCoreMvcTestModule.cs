@@ -6,13 +6,12 @@ using Volo.Abp.AspNetCore.Mvc.Authorization;
 using Volo.Abp.AspNetCore.Mvc.Localization;
 using Volo.Abp.AspNetCore.Mvc.Localization.Resource;
 using Volo.Abp.AspNetCore.TestBase;
-using Volo.Abp.Authorization.Permissions;
 using Volo.Abp.Autofac;
 using Volo.Abp.Localization;
-using Volo.Abp.Localization.Resources.AbpValidation;
 using Volo.Abp.MemoryDb;
 using Volo.Abp.Modularity;
 using Volo.Abp.TestApp;
+using Volo.Abp.Validation.Localization;
 using Volo.Abp.VirtualFileSystem;
 
 namespace Volo.Abp.AspNetCore.Mvc
@@ -57,12 +56,7 @@ namespace Volo.Abp.AspNetCore.Mvc
                 });
             });
 
-            Configure<PermissionOptions>(options =>
-            {
-                options.DefinitionProviders.Add<TestPermissionDefinitionProvider>();
-            });
-
-            Configure<VirtualFileSystemOptions>(options =>
+            Configure<AbpVirtualFileSystemOptions>(options =>
             {
                 options.FileSets.AddEmbedded<AbpAspNetCoreMvcTestModule>();
             });
@@ -75,6 +69,9 @@ namespace Volo.Abp.AspNetCore.Mvc
                         typeof(AbpUiResource),
                         typeof(AbpValidationResource)
                     ).AddVirtualJson("/Volo/Abp/AspNetCore/Mvc/Localization/Resource");
+
+                options.Languages.Add(new LanguageInfo("en", "en", "English"));
+                options.Languages.Add(new LanguageInfo("tr", "tr", "Türkçe"));
             });
         }
 
@@ -83,10 +80,14 @@ namespace Volo.Abp.AspNetCore.Mvc
             var app = context.GetApplicationBuilder();
 
             app.UseCorrelationId();
+            app.UseVirtualFiles();
+            app.UseAbpRequestLocalization();
+            app.UseRouting();
             app.UseMiddleware<FakeAuthenticationMiddleware>();
+            app.UseAuthorization();
             app.UseAuditing();
             app.UseUnitOfWork();
-            app.UseMvcWithDefaultRoute();
+            app.UseMvcWithDefaultRouteAndArea();
         }
     }
 }

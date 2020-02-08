@@ -114,7 +114,7 @@ public class MyWebModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        Configure<BundlingOptions>(options =>
+        Configure<AbpBundlingOptions>(options =>
         {
             options
                 .ScriptBundles
@@ -151,7 +151,7 @@ public class MyWebExtensionModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        Configure<BundlingOptions>(options =>
+        Configure<AbpBundlingOptions>(options =>
         {
             options
                 .ScriptBundles
@@ -189,12 +189,12 @@ public class MyExtensionGlobalStyleContributor : BundleContributor
 Then you can use this contributor as like below:
 
 ````C#
-services.Configure<BundlingOptions>(options =>
+services.Configure<AbpBundlingOptions>(options =>
 {
     options
         .ScriptBundles
         .Configure("MyGlobalBundle", bundle => {
-            bundle.AddContributors(typeof(MyExtensionStyleBundleContributor));
+            bundle.AddContributors(typeof(MyExtensionGlobalStyleContributor));
         });        
 });
 ````
@@ -279,9 +279,9 @@ public class MyExtensionStyleBundleContributor : BundleContributor
 
 Using the built-in contributors for standard packages;
 
-* Prevents you typing **invalid  the resource paths**.
+* Prevents you typing **the invalid resource paths**.
 * Prevents changing your contributor if the resource **path changes** (the dependant contributor will handle it).
-* Prevents multiple modules adding the **duplicate the files**.
+* Prevents multiple modules adding the **duplicate files**.
 * Manages **dependencies recursively** (adds dependencies of dependencies, if necessary).
 
 #### Volo.Abp.AspNetCore.Mvc.UI.Packages Package
@@ -317,7 +317,7 @@ In some specific cases, it may be needed to create a **new** bundle **inherited*
 Example:
 
 ````c#
-services.Configure<BundlingOptions>(options =>
+services.Configure<AbpBundlingOptions>(options =>
 {
     options
         .StyleBundles

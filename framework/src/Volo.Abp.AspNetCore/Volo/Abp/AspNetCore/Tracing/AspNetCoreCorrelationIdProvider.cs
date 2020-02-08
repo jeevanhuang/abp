@@ -10,11 +10,11 @@ namespace Volo.Abp.AspNetCore.Tracing
     public class AspNetCoreCorrelationIdProvider : ICorrelationIdProvider, ITransientDependency
     {
         protected IHttpContextAccessor HttpContextAccessor { get; }
-        protected CorrelationIdOptions Options { get; }
+        protected AbpCorrelationIdOptions Options { get; }
 
         public AspNetCoreCorrelationIdProvider(
             IHttpContextAccessor httpContextAccessor,
-            IOptions<CorrelationIdOptions> options)
+            IOptions<AbpCorrelationIdOptions> options)
         {
             HttpContextAccessor = httpContextAccessor;
             Options = options.Value;
@@ -27,18 +27,21 @@ namespace Volo.Abp.AspNetCore.Tracing
                 return CreateNewCorrelationId();
             }
 
-            lock (HttpContextAccessor.HttpContext.Request.Headers)
+            string correlationId = HttpContextAccessor.HttpContext.Request.Headers[Options.HttpHeaderName];
+
+            if (correlationId.IsNullOrEmpty())
             {
-                string correlationId = HttpContextAccessor.HttpContext.Request.Headers[Options.HttpHeaderName];
-
-                if (correlationId.IsNullOrEmpty())
+                lock (HttpContextAccessor.HttpContext.Request.Headers)
                 {
-                    correlationId = CreateNewCorrelationId();
-                    HttpContextAccessor.HttpContext.Request.Headers[Options.HttpHeaderName] = correlationId;
+                    if (correlationId.IsNullOrEmpty())
+                    {
+                        correlationId = CreateNewCorrelationId();
+                        HttpContextAccessor.HttpContext.Request.Headers[Options.HttpHeaderName] = correlationId;
+                    }
                 }
-
-                return correlationId;
             }
+
+            return correlationId;
         }
 
         protected virtual string CreateNewCorrelationId()

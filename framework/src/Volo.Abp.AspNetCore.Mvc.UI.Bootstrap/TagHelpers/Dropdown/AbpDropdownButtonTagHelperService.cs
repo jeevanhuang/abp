@@ -26,9 +26,9 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Dropdown
 
         public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
         {
-            var content = await output.GetChildContentAsync();
+            var content = await output.GetChildContentAsync().ConfigureAwait(false);
 
-            var buttonsAsHtml = GetButtonsAsHtml(context, output, content);
+            var buttonsAsHtml = await GetButtonsAsHtmlAsync(context, output, content).ConfigureAwait(false);
 
             output.PreElement.SetHtmlContent(buttonsAsHtml);
 
@@ -38,17 +38,18 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Dropdown
             output.Attributes.Clear();
         }
 
-        protected virtual string GetButtonsAsHtml(TagHelperContext context, TagHelperOutput output, TagHelperContent content)
+        protected virtual async Task<string> GetButtonsAsHtmlAsync(TagHelperContext context, TagHelperOutput output,
+            TagHelperContent content)
         {
             var buttonBuilder = new StringBuilder("");
 
-            var mainButton = GetMainButton(context, output, content);
+            var mainButton = await GetMainButtonAsync(context, output, content).ConfigureAwait(false);
 
             buttonBuilder.AppendLine(mainButton);
 
             if (TagHelper.DropdownStyle == DropdownStyle.Split)
             {
-                var splitButton = GetSplitButton(context, output);
+                var splitButton = await GetSplitButtonAsync(context, output).ConfigureAwait(false);
 
                 buttonBuilder.AppendLine(splitButton);
             }
@@ -56,7 +57,7 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Dropdown
             return buttonBuilder.ToString();
         }
 
-        protected virtual string GetMainButton(TagHelperContext context, TagHelperOutput output, TagHelperContent content)
+        protected virtual async Task<string> GetMainButtonAsync(TagHelperContext context, TagHelperOutput output, TagHelperContent content)
         {
             var abpButtonTagHelper = _serviceProvider.GetRequiredService<AbpButtonTagHelper>();
             
@@ -67,7 +68,7 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Dropdown
             abpButtonTagHelper.ButtonType = TagHelper.ButtonType;
             var attributes = GetAttributesForMainButton(context, output);
 
-            var buttonTag = abpButtonTagHelper.ProcessAndGetOutput(attributes, context, "button", TagMode.StartTagAndEndTag);
+            var buttonTag = await abpButtonTagHelper.ProcessAndGetOutputAsync(attributes, context, "button", TagMode.StartTagAndEndTag).ConfigureAwait(false);
 
             buttonTag.PreContent.SetHtmlContent(content.GetContent());
 
@@ -80,7 +81,7 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Dropdown
             return buttonTag.Render(_htmlEncoder);
         }
 
-        protected virtual string GetSplitButton(TagHelperContext context, TagHelperOutput output)
+        protected virtual async Task<string> GetSplitButtonAsync(TagHelperContext context, TagHelperOutput output)
         {
             var abpButtonTagHelper = _serviceProvider.GetRequiredService<AbpButtonTagHelper>();
 
@@ -88,7 +89,7 @@ namespace Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Dropdown
             abpButtonTagHelper.ButtonType = TagHelper.ButtonType;
             var attributes = GetAttributesForSplitButton(context, output);
 
-            return abpButtonTagHelper.Render(attributes, context, _htmlEncoder, "button", TagMode.StartTagAndEndTag);
+            return await abpButtonTagHelper.RenderAsync(attributes, context, _htmlEncoder, "button", TagMode.StartTagAndEndTag).ConfigureAwait(false);
         }
 
         protected virtual TagHelperAttributeList GetAttributesForMainButton(TagHelperContext context, TagHelperOutput output)

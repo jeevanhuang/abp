@@ -25,10 +25,16 @@ namespace Volo.Abp.PermissionManagement.Web.Pages.AbpPermissionManagement
 
         public string EntityDisplayName { get; set; }
 
+        public bool SelectAllInThisTab { get; set; }
+
+        public bool SelectAllInAllTabs { get; set; }
+
         private readonly IPermissionAppService _permissionAppService;
 
         public PermissionManagementModal(IPermissionAppService permissionAppService)
         {
+            ObjectMapperContext = typeof(AbpPermissionManagementWebModule);
+
             _permissionAppService = permissionAppService;
         }
 
@@ -36,7 +42,7 @@ namespace Volo.Abp.PermissionManagement.Web.Pages.AbpPermissionManagement
         {
             ValidateModel();
 
-            var result = await _permissionAppService.GetAsync(ProviderName, ProviderKey);
+            var result = await _permissionAppService.GetAsync(ProviderName, ProviderKey).ConfigureAwait(false);
 
             EntityDisplayName = result.EntityDisplayName;
 
@@ -49,6 +55,13 @@ namespace Volo.Abp.PermissionManagement.Web.Pages.AbpPermissionManagement
             {
                 new FlatTreeDepthFinder<PermissionGrantInfoViewModel>().SetDepths(group.Permissions);
             }
+
+            foreach (var group in Groups)
+            {
+                group.IsAllPermissionsGranted = group.Permissions.All(p => p.IsGranted);
+            }
+
+            SelectAllInAllTabs = Groups.All(g => g.IsAllPermissionsGranted);
         }
 
         public async Task<IActionResult> OnPostAsync()
@@ -71,7 +84,7 @@ namespace Volo.Abp.PermissionManagement.Web.Pages.AbpPermissionManagement
                 {
                     Permissions = updatePermissionDtos
                 }
-            );
+            ).ConfigureAwait(false);
 
             return NoContent();
         }
@@ -79,6 +92,8 @@ namespace Volo.Abp.PermissionManagement.Web.Pages.AbpPermissionManagement
         public class PermissionGroupViewModel
         {
             public string Name { get; set; }
+
+            public bool IsAllPermissionsGranted { get; set; }
 
             public string DisplayName { get; set; }
 
@@ -104,11 +119,13 @@ namespace Volo.Abp.PermissionManagement.Web.Pages.AbpPermissionManagement
 
             public bool IsGranted { get; set; }
 
-            public List<ProviderInfoViewModel> Providers { get; set; }
+            public List<string> AllowedProviders { get; set; }
+
+            public List<ProviderInfoViewModel> GrantedProviders { get; set; }
 
             public bool IsDisabled(string currentProviderName)
             {
-                return IsGranted && Providers.All(p => p.ProviderName != currentProviderName);
+                return IsGranted && GrantedProviders.All(p => p.ProviderName != currentProviderName);
             }
 
             public string GetShownName(string currentProviderName)
@@ -121,7 +138,7 @@ namespace Volo.Abp.PermissionManagement.Web.Pages.AbpPermissionManagement
                 return string.Format(
                     "{0} <span class=\"text-muted\">({1})</span>",
                     DisplayName,
-                    Providers
+                    GrantedProviders
                         .Where(p => p.ProviderName != currentProviderName)
                         .Select(p => p.ProviderName)
                         .JoinAsString(", ")

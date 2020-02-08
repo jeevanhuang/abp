@@ -1,4 +1,6 @@
-﻿using Volo.Abp.Domain;
+﻿using System;
+using Microsoft.Extensions.DependencyInjection;
+using Volo.Abp.Domain;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.VirtualFileSystem;
@@ -17,7 +19,7 @@ namespace Volo.Docs
     {
         public override void ConfigureServices(ServiceConfigurationContext context)
         {
-            Configure<VirtualFileSystemOptions>(options =>
+            Configure<AbpVirtualFileSystemOptions>(options =>
             {
                 options.FileSets
                     .AddEmbedded<DocsDomainModule>();
@@ -34,6 +36,11 @@ namespace Volo.Docs
             {
                 options.Stores[GithubDocumentStore.Type] = typeof(GithubDocumentStore);
                 options.Stores[FileSystemDocumentStore.Type] = typeof(FileSystemDocumentStore);
+            });
+
+            context.Services.AddHttpClient(GithubRepositoryManager.HttpClientName, client =>
+            {
+                client.Timeout = TimeSpan.FromMilliseconds(15000);
             });
         }
     }

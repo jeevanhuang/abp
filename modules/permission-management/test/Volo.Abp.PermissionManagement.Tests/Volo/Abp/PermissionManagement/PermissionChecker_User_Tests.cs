@@ -23,7 +23,7 @@ namespace Volo.Abp.PermissionManagement
             (await _permissionChecker.IsGrantedAsync(
                 CreatePrincipal(PermissionTestDataBuilder.User1Id),
                 "MyPermission1"
-            )).ShouldBeTrue();
+            ).ConfigureAwait(false)).ShouldBeTrue();
         }
 
         [Fact]
@@ -32,7 +32,7 @@ namespace Volo.Abp.PermissionManagement
             (await _permissionChecker.IsGrantedAsync(
                 CreatePrincipal(PermissionTestDataBuilder.User2Id),
                 "MyPermission1"
-            )).ShouldBeFalse();
+            ).ConfigureAwait(false)).ShouldBeFalse();
         }
 
         [Fact]
@@ -41,16 +41,30 @@ namespace Volo.Abp.PermissionManagement
             (await _permissionChecker.IsGrantedAsync(
                 CreatePrincipal(null),
                 "MyPermission1"
-            )).ShouldBeFalse();
+            ).ConfigureAwait(false)).ShouldBeFalse();
         }
 
-        private static ClaimsPrincipal CreatePrincipal(Guid? userId)
+        [Fact]
+        public async Task Should_Not_Allow_Host_Permission_To_Tenant_User_Even_Granted_Before()
+        {
+            (await _permissionChecker.IsGrantedAsync(
+                CreatePrincipal(PermissionTestDataBuilder.User1Id, Guid.NewGuid()),
+                "MyPermission3"
+            ).ConfigureAwait(false)).ShouldBeFalse();
+        }
+
+        private static ClaimsPrincipal CreatePrincipal(Guid? userId, Guid? tenantId = null)
         {
             var claimsIdentity = new ClaimsIdentity();
 
             if (userId != null)
             {
                 claimsIdentity.AddClaim(new Claim(AbpClaimTypes.UserId, userId.ToString()));
+            }
+
+            if (tenantId != null)
+            {
+                claimsIdentity.AddClaim(new Claim(AbpClaimTypes.TenantId, tenantId.ToString()));
             }
 
             return new ClaimsPrincipal(claimsIdentity);

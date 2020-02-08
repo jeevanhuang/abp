@@ -116,17 +116,7 @@ namespace Volo.Abp.Auditing
 
             if (ShouldSave(saveHandle.AuditLog))
             {
-                await _auditingStore.SaveAsync(saveHandle.AuditLog);
-            }
-        }
-
-        protected virtual void Save(DisposableSaveHandle saveHandle)
-        {
-            BeforeSave(saveHandle);
-
-            if (ShouldSave(saveHandle.AuditLog))
-            {
-                _auditingStore.Save(saveHandle.AuditLog);
+                await _auditingStore.SaveAsync(saveHandle.AuditLog).ConfigureAwait(false);
             }
         }
 
@@ -147,7 +137,6 @@ namespace Volo.Abp.Auditing
 
             private readonly AuditingManager _auditingManager;
             private readonly IDisposable _scope;
-            private bool _saved;
 
             public DisposableSaveHandle(
                 AuditingManager auditingManager,
@@ -163,23 +152,11 @@ namespace Volo.Abp.Auditing
 
             public async Task SaveAsync()
             {
-                _saved = true;
-                await _auditingManager.SaveAsync(this);
-            }
-
-            public void Save()
-            {
-                _saved = true;
-                _auditingManager.Save(this);
+                await _auditingManager.SaveAsync(this).ConfigureAwait(false);
             }
 
             public void Dispose()
             {
-                if (!_saved)
-                {
-                    Save();
-                }
-
                 _scope.Dispose();
             }
         }

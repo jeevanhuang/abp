@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Volo.Abp.DependencyInjection;
 
 namespace Volo.Abp.Settings
@@ -11,35 +8,24 @@ namespace Volo.Abp.Settings
     public class SettingProvider : ISettingProvider, ITransientDependency
     {
         protected ISettingDefinitionManager SettingDefinitionManager { get; }
-        protected Lazy<List<ISettingValueProvider>> Providers { get; }
         protected ISettingEncryptionService SettingEncryptionService { get; }
-        protected SettingOptions Options { get; }
+        protected ISettingValueProviderManager SettingValueProviderManager { get; }
 
         public SettingProvider(
-            IOptions<SettingOptions> options,
-            IServiceProvider serviceProvider,
-            ISettingDefinitionManager settingDefinitionManager, 
-            ISettingEncryptionService settingEncryptionService)
+            ISettingDefinitionManager settingDefinitionManager,
+            ISettingEncryptionService settingEncryptionService,
+            ISettingValueProviderManager settingValueProviderManager)
         {
             SettingDefinitionManager = settingDefinitionManager;
             SettingEncryptionService = settingEncryptionService;
-
-            Options = options.Value;
-
-            Providers = new Lazy<List<ISettingValueProvider>>(
-                () => Options
-                    .ValueProviders
-                    .Select(c => serviceProvider.GetRequiredService(c) as ISettingValueProvider)
-                    .ToList(),
-                true
-            );
+            SettingValueProviderManager = settingValueProviderManager;
         }
 
         public virtual async Task<string> GetOrNullAsync(string name)
         {
             var setting = SettingDefinitionManager.Get(name);
             var providers = Enumerable
-                .Reverse(Providers.Value);
+                .Reverse(SettingValueProviderManager.Providers);
 
             if (setting.Providers.Any())
             {
@@ -48,7 +34,7 @@ namespace Volo.Abp.Settings
 
             //TODO: How to implement setting.IsInherited?
 
-            var value = await GetOrNullValueFromProvidersAsync(providers, setting);
+            var value = await GetOrNullValueFromProvidersAsync(providers, setting).ConfigureAwait(false);
             if (setting.IsEncrypted)
             {
                 value = SettingEncryptionService.Decrypt(setting, value);
@@ -62,11 +48,11 @@ namespace Volo.Abp.Settings
             var settingValues = new Dictionary<string, SettingValue>();
             var settingDefinitions = SettingDefinitionManager.GetAll();
 
-            foreach (var provider in Providers.Value)
+            foreach (var provider in SettingValueProviderManager.Providers)
             {
                 foreach (var setting in settingDefinitions)
                 {
-                    var value = await provider.GetOrNullAsync(setting);
+                    var value = await provider.GetOrNullAsync(setting).ConfigureAwait(false);
                     if (value != null)
                     {
                         if (setting.IsEncrypted)
@@ -88,7 +74,7 @@ namespace Volo.Abp.Settings
         {
             foreach (var provider in providers)
             {
-                var value = await provider.GetOrNullAsync(setting);
+                var value = await provider.GetOrNullAsync(setting).ConfigureAwait(false);
                 if (value != null)
                 {
                     return value;

@@ -42,8 +42,16 @@
       ]
     },
     {
+      "text": "CLI",
+      "path": "CLI.md"
+    },
+    {
       "text": "基础知识",
       "items": [
+        {
+          "text": "配置",
+          "path": "Configuration.md"
+        },
         {
           "text": "依赖注入",
           "path": "Dependency-Injection.md",
@@ -68,19 +76,27 @@
         },
         {
           "text": "验证",
-          "path": "Validation.md"
+          "path": "Validation.md",
+          "items": [
+            {
+              "text": "FluentValidation集成",
+              "path": "FluentValidation.md"
+            }
+          ]
         },
         {
           "text": "授权"
         },
         {
-          "text": "缓存"
+          "text": "缓存",
+          "path": "Caching.md"
         },
         {
           "text": "审计"
-        },
+        }, 
         {
-          "text": "设置管理"
+          "text": "设置管理",
+          "path": "Settings.md"
         }
       ]
     },
@@ -104,7 +120,13 @@
       "text": "服务",
       "items": [
         {
-          "text": "对象序列化"
+          "text": "当前用户",
+          "path": "CurrentUser.md"
+        },
+        {
+          "text": "对象到对象映射",
+          "path": "Object-To-Object-Mapping.md"
+
         },
         {
           "text": "JSON序列化"
@@ -145,6 +167,7 @@
     },
     {
       "text": "领域驱动设计",
+      "path": "Domain-Driven-Design.md",
       "items": [
         {
           "text": "领域层",
@@ -161,8 +184,7 @@
               "path": "Repositories.md"
             },
             {
-              "text": "领域服务",
-              "path": "Domain-Services.md"
+              "text": "领域服务"
             },
             {
               "text": "规约"
@@ -180,8 +202,7 @@
               "text": "数据传输对象(DTO)"
             },
             {
-              "text": "工作单元",
-              "path": "Unit-Of-Work.md"
+              "text": "工作单元"
             }
           ]
         }
@@ -192,16 +213,16 @@
       "items": [
         {
           "text": "API",
-           "items": [
-             {
-               "text": "自动API控制器",
-               "path": "AspNetCore/Auto-API-Controllers.md"
-             },
-             {
+          "items": [
+            {
+              "text": "自动API控制器",
+              "path": "AspNetCore/Auto-API-Controllers.md"
+            },
+            {
               "text": "动态C# API客户端",
               "path": "AspNetCore/Dynamic-CSharp-API-Clients.md"
             }
-           ]
+          ]
         },
         {
           "text": "用户界面",
@@ -216,7 +237,11 @@
             },
             {
               "text": "Tag Helpers",
-              "path": "Tag-Helpers.md"
+              "path": "AspNetCore/Tag-Helpers/Index.md"
+            },
+            {
+              "text": "仪表板和小部件(Widget)系统",
+              "path": "AspNetCore/Widgets.md"
             },
             {
               "text": "主题化",
@@ -228,14 +253,25 @@
     },
     {
       "text": "数据访问",
+      "path":"Data-Access.md",
       "items": [
         {
           "text": "Entity Framework Core 集成",
-          "path": "Entity-Framework-Core.md"
+          "path": "Entity-Framework-Core.md",
+          "items": [            
+            {
+              "text": "PostgreSQL 集成",
+              "path": "Entity-Framework-Core-PostgreSQL.md"
+            }
+          ]
         },
         {
           "text": "MongoDB 集成",
           "path": "MongoDB.md"
+        },
+        {
+          "text": "Dapper 集成",
+          "path": "Dapper.md"
         }
       ]
     },
@@ -277,6 +313,10 @@
     },
     {
       "text": "测试"
+    },
+    {
+      "text": "每日构建",
+      "path": "Nightly-Builds.md"
     },
     {
       "text": "贡献指南",

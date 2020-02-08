@@ -146,7 +146,7 @@ public interface IBookAppService : IApplicationService
 `BookDto` is a simple [DTO](Data-Transfer-Objects.md) class defined as below:
 
 ````csharp
-[AutoMapFrom(typeof(Book))] //Defines the mapping
+[AbpAutoMapFrom(typeof(Book))] //Defines the mapping
 public class BookDto
 {
     public Guid Id { get; set; }
@@ -159,7 +159,7 @@ public class BookDto
 }
 ````
 
-* `BookDto` defines `[AutoMapFrom(typeof(Book))]` attribute to create the object mapping from `Book` to `BookDto`.
+* `BookDto` defines `[AbpAutoMapFrom(typeof(Book))]` attribute to create the object mapping from `Book` to `BookDto`.
 
 Then you can implement the `GetAsync` method as shown below:
 
@@ -201,15 +201,15 @@ See the [authorization document](Authorization.md) for more.
 
 ## CRUD Application Services
 
-If you need to create a simple **CRUD application service** which has Create, Update, Delete and Get methods, you can use ABP's **base classes** to easily build your services. You can either inherit from `CrudAppService` or `AsyncCrudAppService`.
+If you need to create a simple **CRUD application service** which has Create, Update, Delete and Get methods, you can use ABP's **base classes** to easily build your services. You can inherit from `CrudAppService`.
 
 ### Example
 
-Create an `IBookAppService` interface inheriting from the `IAsyncCrudAppService` interface.
+Create an `IBookAppService` interface inheriting from the `ICrudAppService` interface.
 
 ````csharp
 public interface IBookAppService : 
-    IAsyncCrudAppService< //Defines CRUD methods
+    ICrudAppService< //Defines CRUD methods
         BookDto, //Used to show books
         Guid, //Primary key of the book entity
         PagedAndSortedResultRequestDto, //Used for paging/sorting on getting a list of books
@@ -219,12 +219,12 @@ public interface IBookAppService :
 }
 ````
 
-* `IAsyncCrudAppService` has generic arguments to get the primary key type of the entity and the DTO types for the CRUD operations (it does not get the entity type since the entity type is not exposed to the clients use this interface).
+* `ICrudAppService` has generic arguments to get the primary key type of the entity and the DTO types for the CRUD operations (it does not get the entity type since the entity type is not exposed to the clients use this interface).
 
-`IAsyncCrudAppService` declares the following methods:
+`ICrudAppService` declares the following methods:
 
 ````csharp
-public interface IAsyncCrudAppService<
+public interface ICrudAppService<
     TEntityDto,
     in TKey,
     in TGetListInput,
@@ -248,7 +248,7 @@ public interface IAsyncCrudAppService<
 DTO classes used in this example are `BookDto` and `CreateUpdateBookDto`:
 
 ````csharp
-[AutoMapFrom(typeof(Book))]
+[AbpAutoMapFrom(typeof(Book))]
 public class BookDto : AuditedEntityDto<Guid>
 {
     public string Name { get; set; }
@@ -258,7 +258,7 @@ public class BookDto : AuditedEntityDto<Guid>
     public float Price { get; set; }
 }
 
-[AutoMapTo(typeof(Book))]
+[AbpAutoMapTo(typeof(Book))]
 public class CreateUpdateBookDto
 {
     [Required]
@@ -279,7 +279,7 @@ And finally, the `BookAppService` implementation is very simple:
 
 ````csharp
 public class BookAppService : 
-    AsyncCrudAppService<Book, BookDto, Guid, PagedAndSortedResultRequestDto,
+    CrudAppService<Book, BookDto, Guid, PagedAndSortedResultRequestDto,
                         CreateUpdateBookDto, CreateUpdateBookDto>,
     IBookAppService
 {
@@ -290,7 +290,7 @@ public class BookAppService :
 }
 ````
 
-`AsyncCrudAppService` implements all methods declared in the `IAsyncCrudAppService` interface. You can then add your own custom methods or override and customize base methods.
+`CrudAppService` implements all methods declared in the `ICrudAppService` interface. You can then add your own custom methods or override and customize base methods.
 
 ## Lifetime
 

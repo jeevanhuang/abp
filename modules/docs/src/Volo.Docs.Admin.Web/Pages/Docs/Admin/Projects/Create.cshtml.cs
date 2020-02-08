@@ -14,7 +14,7 @@ using Volo.Docs.Projects;
 
 namespace Volo.Docs.Admin.Pages.Docs.Admin.Projects
 {
-    public class CreateModel : AbpPageModel
+    public class CreateModel : DocsAdminPageModel
     {
         [BindProperty]
         public CreateGithubProjectViewModel GithubProject { get; set; }
@@ -60,6 +60,7 @@ namespace Volo.Docs.Admin.Pages.Docs.Admin.Projects
             dto.ExtraProperties = new Dictionary<string, object>
             {
                 {nameof(GithubProject.GitHubRootUrl), GithubProject.GitHubRootUrl},
+                {nameof(GithubProject.GitHubUserAgent), GithubProject.GitHubUserAgent},
                 {nameof(GithubProject.GitHubAccessToken), GithubProject.GitHubAccessToken}
             };
 
@@ -87,6 +88,9 @@ namespace Volo.Docs.Admin.Pages.Docs.Admin.Projects
             [StringLength(ProjectConsts.MaxNavigationDocumentNameLength)]
             public string NavigationDocumentName { get; set; } = "docs-nav.json";
 
+            [StringLength(ProjectConsts.MaxParametersDocumentNameLength)]
+            public string ParametersDocumentName { get; set; } = "docs-params.json";
+
             [StringLength(ProjectConsts.MaxVersionNameLength)]
             public string MinimumVersion { get; set; }
 
@@ -109,6 +113,10 @@ namespace Volo.Docs.Admin.Pages.Docs.Admin.Projects
             [DisplayOrder(10001)]
             [StringLength(512)]
             public string GitHubAccessToken { get; set; }
+
+            [DisplayOrder(10002)]
+            [StringLength(64)]
+            public string GitHubUserAgent { get; set; }
         }
     }
 }

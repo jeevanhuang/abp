@@ -16,6 +16,7 @@
     var _dataTable = $('#ProjectsTable').DataTable(abp.libs.datatables.normalizeConfiguration({
         processing: true,
         serverSide: true,
+        scrollX: true,
         paging: true,
         searching: false,
         autoWidth: false,
@@ -29,9 +30,7 @@
                         [
                             {
                                 text: l('Edit'),
-                                visible: function () {
-                                    return true; //TODO: Check permission
-                                },
+                                visible: abp.auth.isGranted('Docs.Admin.Projects.Update'),
                                 action: function (data) {
                                     _editModal.open({
                                         Id: data.record.id
@@ -40,9 +39,7 @@
                             },
                             {
                                 text: l('Delete'),
-                                visible: function () {
-                                    return true; //TODO: Check permission
-                                },
+                                visible: abp.auth.isGranted('Docs.Admin.Projects.Delete'),
                                 confirmMessage: function (data) { return l('ProjectDeletionWarningMessage') },
                                 action: function (data) {
                                     volo.docs.admin.projectsAdmin

@@ -2,6 +2,7 @@
 using Volo.Abp.Autofac;
 using Volo.Abp.Modularity;
 using Volo.Abp.Settings;
+using Volo.Abp.Threading;
 
 namespace Volo.Abp.SettingManagement
 {
@@ -11,14 +12,6 @@ namespace Volo.Abp.SettingManagement
         typeof(AbpSettingManagementDomainModule))]
     public class AbpSettingManagementTestBaseModule : AbpModule
     {
-        public override void ConfigureServices(ServiceConfigurationContext context)
-        {
-            Configure<SettingOptions>(options =>
-            {
-                options.DefinitionProviders.Add<TestSettingDefinitionProvider>();
-            });
-        }
-
         public override void OnApplicationInitialization(ApplicationInitializationContext context)
         {
             SeedTestData(context);
@@ -28,9 +21,9 @@ namespace Volo.Abp.SettingManagement
         {
             using (var scope = context.ServiceProvider.CreateScope())
             {
-                scope.ServiceProvider
+                AsyncHelper.RunSync(()=> scope.ServiceProvider
                     .GetRequiredService<SettingTestDataBuilder>()
-                    .Build();
+                    .BuildAsync());
             }
         }
     }
